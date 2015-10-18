@@ -6,6 +6,33 @@
     android:gravity="center"
     android:orientation="vertical"
     android:padding="15dp"
-    tools:context=".AndroidGooglePlusExample" >
+    tools:context=".AndroidGooglePlusExample"
+    android:weightSum="1">
 
+    <ImageView
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageViewProfile"
+        android:layout_weight="0.08" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textUserName"
+        android:layout_gravity="center_horizontal" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textEmail"
+        android:layout_gravity="center_horizontal" />
+
+    <com.google.android.gms.common.SignInButton
+        android:id="@+id/buttonSignIn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
 </LinearLayout>

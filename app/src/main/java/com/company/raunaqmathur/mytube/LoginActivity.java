@@ -1,72 +1,125 @@
+
 package com.company.raunaqmathur.mytube;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-
+import android.accounts.AccountManager;
+import android.app.Activity;
 import android.content.Intent;
-import android.content.IntentSender.SendIntentException;
-
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Parcelable;
+import android.preference.PreferenceManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
-import com.google.android.gms.common.Scopes;
-import android.support.v7.app.AppCompatActivity;
 
 import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.Scopes;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.plus.Plus;
-import com.google.android.gms.plus.model.people.Person;
+import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
-
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
-
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.YouTubeScopes;
 import com.google.api.services.youtube.model.ChannelListResponse;
-import com.google.api.services.youtube.model.SearchListResponse;
-import com.google.api.services.youtube.model.SearchResult;
+import com.google.api.services.youtube.model.Video;
+import com.google.api.services.youtube.model.VideoSnippet;
 
-public class LoginActivity extends AppCompatActivity implements OnClickListener, ConnectionCallbacks, OnConnectionFailedListener {
+import org.w3c.dom.Text;
 
-    private static final int RC_SIGN_IN = 0;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Arrays;
 
-    // Google client to communicate with Google
+@SuppressWarnings("serial")
+public class LoginActivity extends AppCompatActivity implements
+        ActivityCompat.OnRequestPermissionsResultCallback,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,View.OnClickListener
+
+{
+    YouTube youtube;
+    private String mEmailID;
+    private String mPassword;
+    private SignInButton mButton;
     private GoogleApiClient mGoogleApiClient;
+    private Button mYoutube;
+    private static final int RC_SIGN_IN = 0;
+    private static final String TAG = "Activity";
 
-    private boolean mIntentInProgress;
-    private boolean signedInUser;
-    private ConnectionResult mConnectionResult;
-    private SignInButton signinButton;
-    private ImageView image;
-    private TextView username, emailLabel;
-    private LinearLayout profileFrame, signinFrame;
-    public String                 accessToken        = "";
-    private YouTube youtube;
+    private boolean mIsResolving = false;
+    private boolean mShouldResolve = false;
+
+
+
     private GoogleAccountCredential credential;
-    private YouTube.Search.List query;
-    public static final String[] SCOPES = {Scopes.PROFILE, YouTubeScopes.YOUTUBE, YouTubeScopes.YOUTUBE_UPLOAD};
-    public String accName="";
+    final HttpTransport transport = AndroidHttp.newCompatibleTransport();
+    final JsonFactory jsonFactory = new GsonFactory();
+    private String mChosenAccountName = "raunaq.mathur22@gmail.com";
+
+
+    private static final int REQUEST_AUTHORIZATION = 1;
+
+    private String[] youtubeScopes = {YouTubeScopes.YOUTUBE, YouTubeScopes.YOUTUBE_UPLOAD};
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_login);
+
+        //mEmailID =  ((EditText) findViewById(R.id.email)).getText().toString();
+        //mPassword =  ((EditText) findViewById(R.id.password)).getText().toString();
+        mButton =  (SignInButton)findViewById(R.id.buttonSignIn);
+        //mYoutube = (Button) findViewById(R.id.youtube);
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(Plus.API).addScope(new Scope(Scopes.PROFILE)).addScope(new Scope(Scopes.EMAIL)).build();
+       // mButton.setOnClickListener()
+       mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+
+            public void onClick(View v) {
+
+                if (v.getId() == R.id.buttonSignIn) {
+                    onSignInClicked();
+
+                   /*updateUI();*/
+                    /*Intent intent = new Intent(getBaseContext(), YoutubeActivity.class);
+                    intent.putExtra("youtubeObject", (Serializable) youtube);
+                    startActivity(intent);*/
+                }
+            }
+
+        });
+
+
+    }
+    public void signInClick()
+    {
+
+            onSignInClicked();
+
+            //updateUI();
+
+            Intent intent = new Intent(getBaseContext(), YoutubeActivity.class);
+            intent.putExtra("youtubeObject", (Serializable) youtube);
+            startActivity(intent);
+
+    }
 
 
     @Override
@@ -85,46 +138,172 @@ public class LoginActivity extends AppCompatActivity implements OnClickListener,
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-
-            //mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(Plus.API, Plus.PlusOptions.builder().build()).addScope(Plus.SCOPE_PLUS_LOGIN).build();
-            if(mGoogleApiClient.isConnected()) {
-                googlePlusLogin();
-
-                item.setTitle(R.string.signOut);
-            }
-            else
-            {
-                googlePlusLogout();
-                item.setTitle(R.string.signIn);
-            }
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    private void onSignInClicked() {
+        // User clicked the sign-in button, so begin the sign-in process and automatically
+        // attempt to resolve any errors that occur.
+        mShouldResolve = true;
+        mGoogleApiClient.connect();
 
-
-
+        // Show a message to the user that we are signing in.
+        Toast.makeText(LoginActivity.this, "Signing in", Toast.LENGTH_SHORT).show();
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login);
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.d(TAG, "onActivityResult:" + requestCode + ":" + resultCode + ":" + data);
 
-        //signinButton = (SignInButton) findViewById(R.id.signin);
-        //signinButton.setOnClickListener(this);
+        switch (requestCode){
+            case RC_SIGN_IN:
+                if (resultCode != RESULT_OK) {
+                    mShouldResolve = false;
+                }
+                mIsResolving = false;
+                mGoogleApiClient.connect();
+                break;
+            case REQUEST_AUTHORIZATION:
+                if(resultCode == Activity.RESULT_OK){
+                    String accountName = data.getExtras().getString(
+                            AccountManager.KEY_ACCOUNT_NAME);
+                }
 
-        image = (ImageView) findViewById(R.id.image);
-        username = (TextView) findViewById(R.id.username);
-        emailLabel = (TextView) findViewById(R.id.email);
+
+        }
+
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+
+        // onConnected indicates that an account was selected on the device, that the selected
+        // account has granted any requested permissions to our app and that we were able to
+        // establish a service connection to Google Play services.
+        Log.d(TAG, "onConnected:" + bundle);
+        mShouldResolve = false;
+
+        // Show the signed-in UI
+        Toast.makeText(LoginActivity.this, "Signed in", Toast.LENGTH_SHORT).show();
+        //SharedPreferences sp = PreferenceManager
+        //       .getDefaultSharedPreferences(this);
+
+        //mChosenAccountName = sp.getString(ACCOUNT_KEY, null);
+        Toast.makeText(LoginActivity.this, mChosenAccountName, Toast.LENGTH_SHORT).show();
 
 
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(Plus.API, Plus.PlusOptions.builder().build()).addScope(Plus.SCOPE_PLUS_LOGIN).build();
+        YouTubeClass yt = new YouTubeClass(mChosenAccountName, getApplicationContext());
+        youtube = YouTubeClass.getYouTube();
+        new Thread() {
+            public void run(){
+                 try
+
+                {
+                    ChannelListResponse clr = youtube.channels()
+                            .list("contentDetails").setMine(true).execute();
+                } catch (UserRecoverableAuthIOException e)
+
+                {
+                    startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
+                } catch (IOException e) {//Log.e(TAG, e.getMessage());
+                }
+
+            }
+        }.start();
+
+
+
+
+
+        Toast.makeText(LoginActivity.this, "update UI called", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(getBaseContext(), YoutubeActivity.class);
+
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
     }
 
 
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        // Could not connect to Google Play Services.  The user needs to select an account,
+        // grant permissions or resolve an error in order to sign in. Refer to the javadoc for
+        // ConnectionResult to see possible error codes.
+        Log.d(TAG, "onConnectionFailed:" + connectionResult);
+
+        if (!mIsResolving && mShouldResolve) {
+            if (connectionResult.hasResolution()) {
+                try {
+                    connectionResult.startResolutionForResult(this, RC_SIGN_IN);
+                    mIsResolving = true;
+                } catch (IntentSender.SendIntentException e) {
+                    Log.e(TAG, "Could not resolve ConnectionResult.", e);
+                    mIsResolving = false;
+                    mGoogleApiClient.connect();
+                }
+            } else {
+                // Could not resolve the connection result, show the user an1
+                // error dialog.
+                String conn = connectionResult.getErrorMessage();
+
+                Toast.makeText(LoginActivity.this, conn, Toast.LENGTH_SHORT).show();
+            }
+        } //else {
+        // Show the signed-out UI
+        //showSignedOutUI();
+        //}
+
+    }
+/*
+    private void updateUI() {
+
+
+        credential = GoogleAccountCredential.usingOAuth2(getApplicationContext(), Arrays.asList(youtubeScopes));
+        credential.setSelectedAccountName(mChosenAccountName);
+         youtube= new YouTube.Builder(transport, jsonFactory,
+                credential).setApplicationName("MyTube")
+                .build();
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+
+            protected Void doInBackground(Void... voids){
+
+
+
+                try
+
+                {
+                    ChannelListResponse clr = youtube.channels()
+                            .list("contentDetails").setMine(true).execute();
+                }
+
+                catch(UserRecoverableAuthIOException e)
+
+                {
+                    startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
+                }
+
+                catch(IOException e)
+                {Log.e(TAG, e.getMessage());
+                }
+                return null;
+            }
+        }.execute((Void) null);
+    }
+*/
+    @Override
+    public void onClick(View v) {
+
+    }
 
     protected void onStart() {
         super.onStart();
@@ -133,253 +312,6 @@ public class LoginActivity extends AppCompatActivity implements OnClickListener,
 
     protected void onStop() {
         super.onStop();
-        if (mGoogleApiClient.isConnected()) {
-            mGoogleApiClient.disconnect();
-        }
-    }
-
-    private void resolveSignInError() {
-        if (mConnectionResult.hasResolution()) {
-            try {
-                mIntentInProgress = true;
-                mConnectionResult.startResolutionForResult(this, RC_SIGN_IN);
-            } catch (SendIntentException e) {
-                mIntentInProgress = false;
-                mGoogleApiClient.connect();
-            }
-        }
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        if (!result.hasResolution()) {
-            GooglePlayServicesUtil.getErrorDialog(result.getErrorCode(), this, 0).show();
-            return;
-        }
-
-        if (!mIntentInProgress) {
-            // store mConnectionResult
-            mConnectionResult = result;
-
-            if (signedInUser) {
-                resolveSignInError();
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int responseCode, Intent intent) {
-        switch (requestCode) {
-            case RC_SIGN_IN:
-                if (responseCode == RESULT_OK) {
-                    signedInUser = false;
-
-                }
-                mIntentInProgress = false;
-                if (!mGoogleApiClient.isConnecting()) {
-                    mGoogleApiClient.connect();
-                }
-                break;
-            case 1:
-                if (responseCode == 1) {
-
-
-                }
-        }
-    }
-
-    @Override
-    public void onConnected(Bundle arg0) {
-        signedInUser = false;
-        Toast.makeText(this, "Connected", Toast.LENGTH_LONG).show();
-        //Intent it = new Intent(this, SearchActivity.class);
-
-        getProfileInformation();
-        searchClicked();
-        //startActivity(it);
-    }
-
-    private void updateProfile(boolean isSignedIn) {
-        if (isSignedIn) {
-            signinFrame.setVisibility(View.GONE);
-            profileFrame.setVisibility(View.VISIBLE);
-
-        } else {
-            signinFrame.setVisibility(View.VISIBLE);
-            profileFrame.setVisibility(View.GONE);
-        }
-    }
-
-    private void getProfileInformation() {
-        try {
-            if (Plus.PeopleApi.getCurrentPerson(mGoogleApiClient) != null) {
-                Person currentPerson = Plus.PeopleApi.getCurrentPerson(mGoogleApiClient);
-                String personName = currentPerson.getDisplayName();
-                String personPhotoUrl = currentPerson.getImage().getUrl();
-                String email = Plus.AccountApi.getAccountName(mGoogleApiClient);
-                accName = email;
-                //username.setText(personName);
-                emailLabel.setText(email);
-
-                new LoadProfileImage(image).execute(personPhotoUrl);
-
-                // update profile frame with new info about Google Account
-                // profile
-                updateProfile(true);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            username.setText("Alrwady error: " + e);
-        }
-    }
-
-
-
-    public void searchClicked()
-    {
-
-
-
-
-        try{
-            credential = GoogleAccountCredential.usingOAuth2(
-                    getApplicationContext(), Arrays.asList(SCOPES));
-            //SharedPreferences settings = getPreferences(Context.MODE_PRIVATE);
-            credential.setSelectedAccountName(accName);
-
-            new AsyncTask<Void, Void, Void>() {
-
-                protected Void doInBackground (Void... voids) {
-                    youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(), credential).
-
-                            setApplicationName(getString(R.string.app_name)
-
-                            ).
-
-                            build();
-
-                    try
-
-                    {
-                        ChannelListResponse results = youtube.channels().list("contentDetails").setMine(true).execute();
-                    } catch (
-                            UserRecoverableAuthIOException e
-                            )
-
-                    {
-
-
-                        startActivityForResult(e.getIntent(), 1);
-                    } catch (
-                            IOException e
-                            )
-
-                    {
-
-                    }
-                    return null;
-                }
-            }.execute((Void)null);
-
-        }catch(Exception e){
-            Log.d("YC", "Could not initialize: " + e);
-            ((TextView) findViewById(R.id.textViewVDO)).setText("Could not initialize: " + e);
-            Toast.makeText(this, "" + e, Toast.LENGTH_LONG).show();
-        }
-
-    }
-    public List<SearchItem> search(String keywords){
-        query.setQ("dogs");
-
-        try{
-            SearchListResponse response = query.execute();
-
-            List<SearchResult> results = response.getItems();
-            Toast.makeText(this, "size is:" + results.size(), Toast.LENGTH_LONG).show();
-            List<SearchItem> items = new ArrayList<SearchItem>();
-            for(SearchResult result:results){
-                SearchItem item = new SearchItem();
-                item.setTitle(result.getSnippet().getTitle());
-                item.setDescription(result.getSnippet().getDescription());
-                item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
-                item.setId(result.getId().getVideoId());
-                items.add(item);
-            }
-            if(results.size() > 0)
-                username.setText(items.get(0).toString());
-            else
-                username.setText("no item");
-            return items;
-        }catch(IOException e){
-            Log.d("YC", "Could not search: " + e);
-           // ((TextView) findViewById(R.id.textViewVDO)).setText("Could not initialize: " + e);
-            username.setText("Could not initialize: " + e);
-            Toast.makeText(this, "" + e, Toast.LENGTH_LONG).show();
-            return null;
-        }
-    }
-    @Override
-    public void onConnectionSuspended(int cause) {
-        mGoogleApiClient.connect();
-        updateProfile(false);
-    }
-
-
-
-
-
-
-
-    private void googlePlusLogin() {
-        if (!mGoogleApiClient.isConnecting()) {
-            signedInUser = true;
-            resolveSignInError();
-        }
-    }
-
-    private void googlePlusLogout() {
-        if (mGoogleApiClient.isConnected()) {
-            Plus.AccountApi.clearDefaultAccount(mGoogleApiClient);
-            mGoogleApiClient.disconnect();
-            mGoogleApiClient.connect();
-            updateProfile(false);
-        }
-    }
-
-    @Override
-    public void onClick(View v) {
-
-    }
-
-    // download Google Account profile image, to complete profile
-    private class LoadProfileImage extends AsyncTask {
-        ImageView downloadedImage;
-
-        public LoadProfileImage(ImageView image) {
-            this.downloadedImage = image;
-        }
-
-        protected Bitmap doInBackground(String... urls) {
-            String url = urls[0];
-            Bitmap icon = null;
-            try {
-                InputStream in = new java.net.URL(url).openStream();
-                icon = BitmapFactory.decodeStream(in);
-            } catch (Exception e) {
-                Log.e("Error", e.getMessage());
-                e.printStackTrace();
-            }
-            return icon;
-        }
-
-        protected void onPostExecute(Bitmap result) {
-            downloadedImage.setImageBitmap(result);
-        }
-
-        @Override
-        protected Object doInBackground(Object[] params) {
-            return null;
-        }
+        //mGoogleApiClient.disconnect();
     }
 }
