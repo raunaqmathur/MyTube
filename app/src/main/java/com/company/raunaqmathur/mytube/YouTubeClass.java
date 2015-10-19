@@ -4,15 +4,22 @@ import android.content.Context;
 import android.os.StrictMode;
 
 import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+
+//import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+
 import com.google.api.client.util.ExponentialBackOff;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.YouTubeScopes;
 
 import java.util.Arrays;
+
 
 /**
  * Created by raunaqmathur on 10/18/15.
@@ -26,17 +33,19 @@ public class YouTubeClass {
 
     private String[] youtubeScopes = {YouTubeScopes.YOUTUBE, YouTubeScopes.YOUTUBE_UPLOAD, YouTubeScopes.YOUTUBE_READONLY, YouTubeScopes.YOUTUBEPARTNER, YouTubeScopes.YOUTUBEPARTNER_CHANNEL_AUDIT};
 
-    public YouTubeClass(String mName, Context appContext){
+    public YouTubeClass(String mName, Context appContext, String token){
 
 
             if(youtube == null) {
                 StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
                 StrictMode.setThreadPolicy(policy);
                 credential = GoogleAccountCredential.usingOAuth2(appContext, Arrays.asList(youtubeScopes));
+               // credential = new GoogleCredential().setAccessToken(token);
                 // set exponential backoff policy
                 credential.setBackOff(new ExponentialBackOff());
                 credential.setSelectedAccountName(mName);
-                youtube = new YouTube.Builder(transport, jsonFactory,
+                youtube = new YouTube.Builder(new NetHttpTransport(),
+                        new JacksonFactory(),
                         credential).setApplicationName("MyTube")
                         .build();
             }

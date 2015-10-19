@@ -10,6 +10,26 @@ public class SearchItem {
     private String thumbnailURL;
     private String id;
 
+    public String getNumberOfViews() {
+        return numberOfViews;
+    }
+
+    public void setNumberOfViews(String numberOfViews) {
+        this.numberOfViews = numberOfViews;
+    }
+
+    private String numberOfViews;
+
+    public String getPublishedDate() {
+        return publishedDate;
+    }
+
+    public void setPublishedDate(String publishedDate) {
+        this.publishedDate = publishedDate;
+    }
+
+    private String publishedDate;
+
     public String getId() {
         return id;
     }

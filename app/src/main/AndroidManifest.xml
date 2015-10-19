@@ -23,11 +23,18 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PlayerActivity"
+            android:label="@string/title_activity_player"
+            android:screenOrientation="landscape" >
 
+        </activity>
 
         <activity
             android:name=".YoutubeActivity"
-            android:label="@string/title_activity_youtube" >
+            android:label="@string/title_activity_youtube"
+            android:screenOrientation="landscape" >
+
         </activity>
     </application>
 

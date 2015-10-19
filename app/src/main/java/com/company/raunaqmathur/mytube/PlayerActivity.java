@@ -1,39 +1,44 @@
 package com.company.raunaqmathur.mytube;
 
-import android.app.Fragment;
+
 
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 
+import android.widget.Toast;
 
-import com.google.android.gms.common.Scopes;
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
-
-import com.google.api.services.youtube.YouTubeScopes;
-
-
-public class PlayerActivity extends Fragment {
+import com.google.android.youtube.player.YouTubeBaseActivity;
+import com.google.android.youtube.player.YouTubePlayer;
+import com.google.android.youtube.player.YouTubePlayerView;
+import com.google.android.youtube.player.YouTubeInitializationResult;
 
 
 
 
+public class PlayerActivity extends YouTubeBaseActivity implements YouTubePlayer.OnInitializedListener {
+
+    private YouTubePlayerView playerView;
 
     @Override
+    protected void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
 
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+        setContentView(R.layout.activity_player);
 
-                             Bundle savedInstanceState) {
-
-        View rootView = inflater.inflate(R.layout.activity_player, container, false);
-
-        return rootView;
-
+        playerView = (YouTubePlayerView)findViewById(R.id.player_view);
+        playerView.initialize("AIzaSyCCon6fkhWYrdMF2j5chOmLbfgwceniRGM", this);
     }
 
 
 
+    @Override
+    public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer youTubePlayer, boolean b) {
+        if(!b){
+            youTubePlayer.cueVideo(getIntent().getStringExtra("VIDEO_ID"));
+        }
+    }
 
-
+    @Override
+    public void onInitializationFailure(YouTubePlayer.Provider provider, YouTubeInitializationResult youTubeInitializationResult) {
+        Toast.makeText(this, getString(R.string.failed), Toast.LENGTH_LONG).show();
+    }
 }

@@ -1,61 +1,326 @@
 package com.company.raunaqmathur.mytube;
 
 import android.accounts.AccountManager;
+
 import android.app.Activity;
+
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.StrictMode;
+
+import android.os.Handler;
+import android.support.v4.view.ViewPager;
+
+
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import android.view.View.OnClickListener;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
-import com.google.api.client.util.ExponentialBackOff;
+
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.YouTubeScopes;
 import com.google.api.services.youtube.model.ChannelListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
 import com.google.api.services.youtube.model.SearchResult;
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+
 import java.util.List;
 
 
 
-public class YoutubeActivity extends AppCompatActivity {
+public class YoutubeActivity extends AppCompatActivity{
     private YouTube youtube = null;
     private YouTube.Search.List query;
-    private String mChosenAccountName = "";
-    private TextView textViewData;
-    private GoogleAccountCredential credential;
 
-    final HttpTransport transport = AndroidHttp.newCompatibleTransport();
-    final JsonFactory jsonFactory = new GsonFactory();
-    private String[] youtubeScopes = {YouTubeScopes.YOUTUBE, YouTubeScopes.YOUTUBE_UPLOAD, YouTubeScopes.YOUTUBE_READONLY, YouTubeScopes.YOUTUBEPARTNER, YouTubeScopes.YOUTUBEPARTNER_CHANNEL_AUDIT};
-    private static final int REQUEST_AUTHORIZATION = 1;
+
+   private static final int REQUEST_AUTHORIZATION = 1;
+
+
+
+
+
+
+    ///////////////////
+
+
+
+    private EditText searchInput;
+    private ListView videosFound;
+
+
+
+    private Handler handler;
+
+    private List<SearchItem> searchResults, playListsearchResults;
+    private List<String> favVideoIds  = new ArrayList<String>();
+
+    private String videoID;
+
+    private String playListName = "CMPESJSU277";
+
+    public YoutubeActivity() {
+    }
+
+    /////////
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_youtube);
-        textViewData = (TextView) findViewById(R.id.textViewData);
-        youtube = YouTubeClass.getYouTube();
-        search("");
 
+
+
+
+        youtube = YouTubeClass.getYouTube();
+
+        ////////get Data of Playlist
+
+        new Thread(){
+            public void run(){
+                YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                playListsearchResults = yc.searchPlaylist(playListName);
+                handler.post(new Runnable(){
+                    public void run(){
+                        getAllFavIds("Add", "");
+                    }
+                });
+            }
+        }.start();
+
+
+
+        searchInput = (EditText)findViewById(R.id.search_input);
+        videosFound = (ListView)findViewById(R.id.videos_found);
+
+
+        handler = new Handler();
+        searchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    searchOnYoutube(v.getText().toString());
+                    return false;
+                }
+                return true;
+            }
+        });
+        //addClickListener();
 
     }
 
+
+    private void searchOnYoutube(final String keywords){
+        new Thread(){
+            public void run(){
+                YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                searchResults = yc.search(keywords);
+                handler.post(new Runnable(){
+                    public void run(){
+                        updateVideosFound();
+                    }
+                });
+            }
+        }.start();
+    }
+
+
+    private void updateVideosFound(){
+        ArrayAdapter<SearchItem> adapter = new ArrayAdapter<SearchItem>(getApplicationContext(), R.layout.video_result, searchResults){
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                if(convertView == null){
+                    convertView = getLayoutInflater().inflate(R.layout.video_result, parent, false);
+                }
+                ImageView thumbnail = (ImageView)convertView.findViewById(R.id.video_thumbnail);
+                TextView title = (TextView)convertView.findViewById(R.id.video_title);
+                TextView description = (TextView)convertView.findViewById(R.id.video_description);
+                ImageView playListAdd = null;
+                ImageView playListPlay = (ImageView)convertView.findViewById(R.id.video_play);
+                SearchItem searchResult = searchResults.get(position);
+                videoID = searchResult.getId();
+                Picasso.with(getApplicationContext()).load(searchResult.getThumbnailURL()).into(thumbnail);
+                title.setText(searchResult.getTitle());
+                description.setText(searchResult.getDescription());
+
+                if(playListsearchResults.size() != 0)
+                {
+                    if(favVideoIds.contains(videoID)) {
+                        ((ImageView)convertView.findViewById(R.id.video_addPlayList)).setVisibility(View.INVISIBLE);
+                        playListAdd = (ImageView)convertView.findViewById(R.id.video_removePlayList);
+                        playListAdd.setClickable(true);
+                        playListAdd.setOnClickListener(new OnClickListener() {
+
+
+                            @Override
+                            public void onClick(View v) {
+
+                                Log.i("VideoID:", "" + videoID);
+                                new Thread() {
+                                    public void run() {
+                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                                        yc.removePlaylistItem(videoID);
+                                        Log.i("Video removed:", "" + videoID);
+
+                                    }
+
+                                }.start();
+                                new Thread(){
+                                    public void run(){
+                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                                        playListsearchResults = yc.searchPlaylist(playListName);
+                                        handler.post(new Runnable(){
+                                            public void run(){
+                                                getAllFavIds("remove", videoID);
+                                            }
+                                        });
+                                    }
+                                }.start();
+
+
+                            }
+                        });
+
+                    }
+                    else
+                    {
+                        ((ImageView)convertView.findViewById(R.id.video_removePlayList)).setVisibility(View.INVISIBLE);
+                        playListAdd = (ImageView)convertView.findViewById(R.id.video_addPlayList);
+                        playListAdd.setClickable(true);
+                        playListAdd.setOnClickListener(new OnClickListener() {
+
+
+                            @Override
+                            public void onClick(View v) {
+
+                                Log.i("VideoID:", "" + videoID);
+                                new Thread() {
+                                    public void run() {
+                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                                        yc.insertPlaylistItem(videoID);
+                                        Log.i("Video added:", "" + videoID);
+                                    }
+                                }.start();
+                                new Thread(){
+                                    public void run(){
+                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                                        playListsearchResults = yc.searchPlaylist(playListName);
+                                        handler.post(new Runnable() {
+                                            public void run() {
+                                                getAllFavIds("Add", "");
+                                            }
+                                        });
+                                    }
+                                }.start();
+
+                            }
+                        });
+                    }
+                }
+                else {
+                    ((ImageView)convertView.findViewById(R.id.video_removePlayList)).setVisibility(View.INVISIBLE);
+                    playListAdd = (ImageView)convertView.findViewById(R.id.video_addPlayList);
+                    playListAdd.setClickable(true);
+                    playListAdd.setOnClickListener(new OnClickListener() {
+
+
+                        @Override
+                        public void onClick(View v) {
+
+                            Log.i("VideoID:", "" + videoID);
+                            new Thread() {
+                                public void run() {
+                                    YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                                    yc.insertPlaylistItem(videoID);
+                                    Log.i("Video added:", "" + videoID);
+                                }
+                            }.start();
+
+
+                        }
+                    });
+                }
+                playListAdd.setVisibility(View.VISIBLE);
+
+                playListPlay.setClickable(true);
+                playListPlay.setOnClickListener(new OnClickListener() {
+
+
+                    @Override
+                    public void onClick(View v ) {
+
+                        Log.i("Going to play VideoID:","" + videoID);
+                        Intent intent = new Intent(getApplicationContext(), PlayerActivity.class);
+                        intent.putExtra("VIDEO_ID", videoID);
+                        startActivity(intent);
+
+
+                    }
+                });
+                return convertView;
+            }
+        };
+
+        videosFound.setAdapter(adapter);
+
+
+        //addClickListener();
+    }
+
+    private void getAllFavIds(String action, String video)
+    {
+        if(action.equals("Add"))
+            for(SearchItem fav : playListsearchResults)
+            {
+
+                if(!favVideoIds.contains(fav.getId()))
+                    favVideoIds.add(fav.getId());
+
+            }
+
+        else
+        {
+            if(favVideoIds.contains(video))
+                favVideoIds.remove(video);
+        }
+
+    }
+
+
+    private void addClickListener(){
+        videosFound.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> av, View v, int pos,
+                                    long id) {
+                Intent intent = new Intent(getApplicationContext(), PlayerActivity.class);
+                intent.putExtra("VIDEO_ID", searchResults.get(pos).getId());
+                startActivity(intent);
+            }
+
+        });
+    }
 
     private void updateUI() {
 
@@ -101,6 +366,7 @@ public class YoutubeActivity extends AppCompatActivity {
 
     }
 
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -136,6 +402,7 @@ public class YoutubeActivity extends AppCompatActivity {
         }
 
     }
+
 
 
     private class LoadSearchData extends AsyncTask<String, Void, List<SearchItem>> {

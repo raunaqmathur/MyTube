@@ -21,6 +21,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.GoogleAuthUtil;
+import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.Scopes;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -29,6 +32,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.plus.Plus;
 import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException;
 import com.google.api.client.http.HttpTransport;
@@ -65,6 +69,9 @@ public class LoginActivity extends AppCompatActivity implements
     private boolean mIsResolving = false;
     private boolean mShouldResolve = false;
 
+    private final static String PROFILE_ME = "https://www.googleapis.com/auth/plus.me";
+    private final static String YOUTUBE_SCOPE = "https://www.googleapis.com/auth/youtube";
+    private final static String SCOPE = "oauth2:" + PROFILE_ME + " " + YOUTUBE_SCOPE;
 
 
     private GoogleAccountCredential credential;
@@ -197,7 +204,13 @@ public class LoginActivity extends AppCompatActivity implements
 
 
 
-        YouTubeClass yt = new YouTubeClass(mChosenAccountName, getApplicationContext());
+
+
+        String token = null;
+
+
+
+        YouTubeClass yt = new YouTubeClass(mChosenAccountName, getApplicationContext(), token);
         youtube = YouTubeClass.getYouTube();
         new Thread() {
             public void run(){
@@ -206,11 +219,13 @@ public class LoginActivity extends AppCompatActivity implements
                 {
                     ChannelListResponse clr = youtube.channels()
                             .list("contentDetails").setMine(true).execute();
+
                 } catch (UserRecoverableAuthIOException e)
 
                 {
+                    Log.i(TAG, e.getMessage());
                     startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
-                } catch (IOException e) {//Log.e(TAG, e.getMessage());
+                } catch (IOException e) {Log.e(TAG, e.getMessage());
                 }
 
             }

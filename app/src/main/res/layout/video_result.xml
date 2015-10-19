@@ -13,7 +13,8 @@
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
         android:layout_marginRight="20dp"
-        />
+         />
+
 
     <TextView android:id="@+id/video_title"
         android:layout_width="wrap_content"
@@ -31,6 +32,32 @@
         android:layout_toRightOf="@+id/video_thumbnail"
         android:layout_below="@+id/video_title"
         android:textSize="15sp"
+        />
+
+    <ImageView
+        android:id="@+id/video_play"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_toRightOf="@+id/video_thumbnail"
+        android:layout_below="@+id/video_description"
+        android:src="@android:drawable/ic_media_play" />
+
+    <ImageView
+        android:id="@+id/video_addPlayList"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_toRightOf="@+id/video_play"
+        android:layout_below="@+id/video_description"
+        android:src="@android:drawable/btn_star_big_off"
+        />
+    <ImageView
+        android:id="@+id/video_removePlayList"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_toRightOf="@+id/video_play"
+        android:layout_below="@+id/video_description"
+        android:src="@android:drawable/btn_star_big_on"
+        android:visibility="invisible"
         />
 
 </RelativeLayout>
