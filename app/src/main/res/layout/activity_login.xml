@@ -13,21 +13,24 @@
         android:layout_width="36dp"
         android:layout_height="wrap_content"
         android:id="@+id/imageViewProfile"
-        android:layout_weight="0.08" />
+        android:layout_weight="0.08"
+        android:visibility="invisible" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="New Text"
         android:id="@+id/textUserName"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:visibility="invisible" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="New Text"
         android:id="@+id/textEmail"
-        android:layout_gravity="center_horizontal" />
+        android:layout_gravity="center_horizontal"
+        android:visibility="invisible" />
 
     <com.google.android.gms.common.SignInButton
         android:id="@+id/buttonSignIn"

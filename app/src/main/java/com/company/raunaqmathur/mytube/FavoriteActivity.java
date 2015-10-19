@@ -49,12 +49,12 @@ import java.util.List;
 
 
 
-public class YoutubeActivity extends AppCompatActivity{
+public class FavoriteActivity extends AppCompatActivity{
     private YouTube youtube = null;
     private YouTube.Search.List query;
 
 
-   private static final int REQUEST_AUTHORIZATION = 1;
+    private static final int REQUEST_AUTHORIZATION = 1;
 
 
 
@@ -65,21 +65,21 @@ public class YoutubeActivity extends AppCompatActivity{
 
 
 
-    private EditText searchInput;
+
     private ListView videosFound;
 
 
 
     private Handler handler;
 
-    private List<SearchItem> searchResults, playListsearchResults;
+    private List<SearchItem> searchResults;
     private List<String> favVideoIds  = new ArrayList<String>();
 
     private String videoID;
 
     private String playListName = "CMPESJSU277";
 
-    public YoutubeActivity() {
+    public FavoriteActivity() {
     }
 
     /////////
@@ -88,7 +88,7 @@ public class YoutubeActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_youtube);
+        setContentView(R.layout.activity_favorite);
 
 
 
@@ -99,11 +99,12 @@ public class YoutubeActivity extends AppCompatActivity{
 
         new Thread(){
             public void run(){
-                YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                playListsearchResults = yc.searchPlaylist(playListName);
+                YoutubeConnector yc = new YoutubeConnector(FavoriteActivity.this);
+                searchResults = yc.searchPlaylist(playListName);
                 handler.post(new Runnable(){
                     public void run(){
                         getAllFavIds("Add", "");
+                        updateVideosFound();
                     }
                 });
             }
@@ -111,22 +112,12 @@ public class YoutubeActivity extends AppCompatActivity{
 
 
 
-        searchInput = (EditText)findViewById(R.id.search_input);
-        videosFound = (ListView)findViewById(R.id.videos_found);
+
+        videosFound = (ListView)findViewById(R.id.favvideos_found);
 
 
         handler = new Handler();
-        searchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_DONE) {
-                    searchOnYoutube(v.getText().toString());
-                    return false;
-                }
-                return true;
-            }
-        });
-        //addClickListener();
+
 
     }
 
@@ -134,7 +125,7 @@ public class YoutubeActivity extends AppCompatActivity{
     private void searchOnYoutube(final String keywords){
         new Thread(){
             public void run(){
-                YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
+                YoutubeConnector yc = new YoutubeConnector(FavoriteActivity.this);
                 searchResults = yc.search(keywords);
                 handler.post(new Runnable(){
                     public void run(){
@@ -156,112 +147,15 @@ public class YoutubeActivity extends AppCompatActivity{
                 ImageView thumbnail = (ImageView)convertView.findViewById(R.id.video_thumbnail);
                 TextView title = (TextView)convertView.findViewById(R.id.video_title);
                 TextView description = (TextView)convertView.findViewById(R.id.video_description);
-                ImageView playListAdd = null;
+
                 ImageView playListPlay = (ImageView)convertView.findViewById(R.id.video_play);
                 SearchItem searchResult = searchResults.get(position);
                 videoID = searchResult.getId();
                 Picasso.with(getApplicationContext()).load(searchResult.getThumbnailURL()).into(thumbnail);
                 title.setText(searchResult.getTitle());
                 description.setText(searchResult.getDescription());
-
-                if(playListsearchResults.size() != 0)
-                {
-                    if(favVideoIds.contains(videoID)) {
-                        ((ImageView)convertView.findViewById(R.id.video_addPlayList)).setVisibility(View.INVISIBLE);
-                        playListAdd = (ImageView)convertView.findViewById(R.id.video_removePlayList);
-                        playListAdd.setClickable(true);
-                        playListAdd.setOnClickListener(new OnClickListener() {
-
-
-                            @Override
-                            public void onClick(View v) {
-
-                                Log.i("VideoID:", "" + videoID);
-                                new Thread() {
-                                    public void run() {
-                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                                        yc.removePlaylistItem(videoID);
-                                        Log.i("Video removed:", "" + videoID);
-
-                                    }
-
-                                }.start();
-                                new Thread(){
-                                    public void run(){
-                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                                        playListsearchResults = yc.searchPlaylist(playListName);
-                                        handler.post(new Runnable(){
-                                            public void run(){
-                                                getAllFavIds("remove", videoID);
-                                            }
-                                        });
-                                    }
-                                }.start();
-
-
-                            }
-                        });
-
-                    }
-                    else
-                    {
-                        ((ImageView)convertView.findViewById(R.id.video_removePlayList)).setVisibility(View.INVISIBLE);
-                        playListAdd = (ImageView)convertView.findViewById(R.id.video_addPlayList);
-                        playListAdd.setClickable(true);
-                        playListAdd.setOnClickListener(new OnClickListener() {
-
-
-                            @Override
-                            public void onClick(View v) {
-
-                                Log.i("VideoID:", "" + videoID);
-                                new Thread() {
-                                    public void run() {
-                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                                        yc.insertPlaylistItem(videoID);
-                                        Log.i("Video added:", "" + videoID);
-                                    }
-                                }.start();
-                                new Thread(){
-                                    public void run(){
-                                        YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                                        playListsearchResults = yc.searchPlaylist(playListName);
-                                        handler.post(new Runnable() {
-                                            public void run() {
-                                                getAllFavIds("Add", "");
-                                            }
-                                        });
-                                    }
-                                }.start();
-
-                            }
-                        });
-                    }
-                }
-                else {
-                    ((ImageView)convertView.findViewById(R.id.video_removePlayList)).setVisibility(View.INVISIBLE);
-                    playListAdd = (ImageView)convertView.findViewById(R.id.video_addPlayList);
-                    playListAdd.setClickable(true);
-                    playListAdd.setOnClickListener(new OnClickListener() {
-
-
-                        @Override
-                        public void onClick(View v) {
-
-                            Log.i("VideoID:", "" + videoID);
-                            new Thread() {
-                                public void run() {
-                                    YoutubeConnector yc = new YoutubeConnector(YoutubeActivity.this);
-                                    yc.insertPlaylistItem(videoID);
-                                    Log.i("Video added:", "" + videoID);
-                                }
-                            }.start();
-
-
-                        }
-                    });
-                }
-                playListAdd.setVisibility(View.VISIBLE);
+                ((ImageView)convertView.findViewById(R.id.video_addPlayList)).setVisibility(View.INVISIBLE);
+                ((ImageView)convertView.findViewById(R.id.video_removePlayList)).setVisibility(View.INVISIBLE);
 
                 playListPlay.setClickable(true);
                 playListPlay.setOnClickListener(new OnClickListener() {
@@ -291,7 +185,7 @@ public class YoutubeActivity extends AppCompatActivity{
     private void getAllFavIds(String action, String video)
     {
         if(action.equals("Add"))
-            for(SearchItem fav : playListsearchResults)
+            for(SearchItem fav : searchResults)
             {
 
                 if(!favVideoIds.contains(fav.getId()))
@@ -308,44 +202,8 @@ public class YoutubeActivity extends AppCompatActivity{
     }
 
 
-    private void addClickListener(){
-        videosFound.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            @Override
-            public void onItemClick(AdapterView<?> av, View v, int pos,
-                                    long id) {
-                Intent intent = new Intent(getApplicationContext(), PlayerActivity.class);
-                intent.putExtra("VIDEO_ID", searchResults.get(pos).getId());
-                startActivity(intent);
-            }
-
-        });
-    }
-
-    private void updateUI() {
-
-        youtube = YouTubeClass.getYouTube();
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-
-            protected Void doInBackground(Void... voids) {
 
 
-                try
-
-                {
-                    ChannelListResponse clr = youtube.channels()
-                            .list("contentDetails").setMine(true).execute();
-                } catch (UserRecoverableAuthIOException e)
-
-                {
-                    startActivityForResult(e.getIntent(), REQUEST_AUTHORIZATION);
-                } catch (IOException e) {//Log.e(TAG, e.getMessage());
-                }
-                return null;
-            }
-        }.execute((Void) null);
-    }
 
 
     @Override
@@ -370,7 +228,7 @@ public class YoutubeActivity extends AppCompatActivity{
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_youtube, menu);
+        getMenuInflater().inflate(R.menu.menu_favorite, menu);
         return true;
     }
 
@@ -382,14 +240,6 @@ public class YoutubeActivity extends AppCompatActivity{
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_fav) {
-
-            Intent intent = new Intent(getApplicationContext(), FavoriteActivity.class);
-            //intent.putExtra("VIDEO_ID", videoID);
-            startActivity(intent);
-            finish();
-            return true;
-        }
         if (id == R.id.action_logout) {
 
             Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
@@ -398,6 +248,7 @@ public class YoutubeActivity extends AppCompatActivity{
             finish();
             return true;
         }
+
         return super.onOptionsItemSelected(item);
     }
 
@@ -429,7 +280,7 @@ public class YoutubeActivity extends AppCompatActivity{
         protected void onPostExecute(List<SearchItem> result) {
             super.onPostExecute(result);
             if (result.size() > 0) {
-                    for (SearchItem res : result) {
+                for (SearchItem res : result) {
 
                     Log.i("postres: ", res.getThumbnailURL());
                 }

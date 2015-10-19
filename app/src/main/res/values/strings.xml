@@ -22,4 +22,6 @@
 <!-- TODO: Remove or change this placeholder text -->
     <string name="searchFragment">Hello search fragment</string>
     <string name="favFragment">Hello Favorite fragment</string>
+    <string name="action_fav">playlist</string>
+    <string name="action_logout">Logout</string>
 </resources>

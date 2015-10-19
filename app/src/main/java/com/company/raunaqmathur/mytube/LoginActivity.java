@@ -61,7 +61,7 @@ public class LoginActivity extends AppCompatActivity implements
     private String mEmailID;
     private String mPassword;
     private SignInButton mButton;
-    private GoogleApiClient mGoogleApiClient;
+    private static GoogleApiClient mGoogleApiClient;
     private Button mYoutube;
     private static final int RC_SIGN_IN = 0;
     private static final String TAG = "Activity";
@@ -114,7 +114,50 @@ public class LoginActivity extends AppCompatActivity implements
         });
 
 
+        /*Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+
+                Log.i("status:", "" + extras.getString("signOut"));
+            if (extras.getString("signOut").equals("1")) {
+                signOut();
+            }
+            else
+            {
+                //mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(Plus.API).addScope(new Scope(Scopes.PROFILE)).addScope(new Scope(Scopes.EMAIL)).build();
+            }
+        }*/
+
+            //mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).addOnConnectionFailedListener(this).addApi(Plus.API).addScope(new Scope(Scopes.PROFILE)).addScope(new Scope(Scopes.EMAIL)).build();
+
+
+
     }
+
+
+    private void signOut() {
+        Log.i(TAG, "In signout." + mGoogleApiClient.isConnected());
+
+            Log.i(TAG, "Logging Out.");
+        if (mGoogleApiClient.isConnected()) {
+            Plus.AccountApi.clearDefaultAccount(mGoogleApiClient);
+            mGoogleApiClient.disconnect();
+
+            Toast.makeText(getApplicationContext(), "Logged Out", Toast.LENGTH_LONG);
+        }
+        else
+        {
+
+
+            mGoogleApiClient.connect();
+            Plus.AccountApi.clearDefaultAccount(mGoogleApiClient);
+            mGoogleApiClient.disconnect();
+            Toast.makeText(getApplicationContext(), "Logged Out after reconnecting", Toast.LENGTH_LONG);
+        }
+
+
+
+    }
+
     public void signInClick()
     {
 
@@ -200,7 +243,7 @@ public class LoginActivity extends AppCompatActivity implements
         //       .getDefaultSharedPreferences(this);
 
         //mChosenAccountName = sp.getString(ACCOUNT_KEY, null);
-        Toast.makeText(LoginActivity.this, mChosenAccountName, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(LoginActivity.this, mChosenAccountName, Toast.LENGTH_SHORT).show();
 
 
 
@@ -327,6 +370,8 @@ public class LoginActivity extends AppCompatActivity implements
 
     protected void onStop() {
         super.onStop();
-        //mGoogleApiClient.disconnect();
+        if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect();
+        }
     }
 }

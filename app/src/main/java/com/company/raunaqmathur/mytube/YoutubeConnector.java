@@ -1,6 +1,7 @@
 package com.company.raunaqmathur.mytube;
 
 import android.content.Context;
+import android.provider.SyncStateContract;
 import android.util.Log;
 
 import com.google.api.client.util.Joiner;
@@ -18,10 +19,16 @@ import com.google.api.services.youtube.model.SearchResult;
 import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoListResponse;
 
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Created by raunaqmathur on 10/18/15.
@@ -151,14 +158,12 @@ public class YoutubeConnector {
 
         if (!playListId.isEmpty()) {
 
-            ResourceId resourceId = new ResourceId();
-            resourceId.setKind("youtube#video");
-            resourceId.setVideoId(videoId);
+
 
             try {
 
                 YouTube.PlaylistItems.Delete deleteVideosRequest = youtube.playlistItems().delete(videoId);
-                deleteVideosRequest.execute();
+                deleteVideosRequest.set("PlaylistId", playListId).execute();
 
 
 
@@ -177,6 +182,11 @@ public class YoutubeConnector {
         }
 
     }
+
+
+
+
+
 
     public List<SearchItem> searchPlaylist(String playlistName) {
         try {
@@ -278,6 +288,10 @@ public class YoutubeConnector {
 
 
     }
+
+
+
+
 
 
 }
